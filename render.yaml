@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mc-readonly-mcp
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: MCP_BEARER_TOKEN
+        sync: false
+      - key: PORT
+        value: 8000
