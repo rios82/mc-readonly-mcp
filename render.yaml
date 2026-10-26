@@ -7,5 +7,3 @@ services:
     envVars:
       - key: MCP_BEARER_TOKEN
         sync: false
-      - key: PORT
-        value: 8000
