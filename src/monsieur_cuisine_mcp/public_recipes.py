@@ -9,10 +9,10 @@ from .config import API_BASE_URL, DEFAULT_LANGUAGE, REQUEST_TIMEOUT_SECONDS
 class PublicRecipeAPIError(RuntimeError):
     pass
 
-async def _get(path: str, params: dict[str, Any] | None = None) -> Any:
+async def _get(path: str, params: dict[str, Any] | None = None, language: str = DEFAULT_LANGUAGE) -> Any:
     # Fixed host + relative path only: caller-supplied URLs are never accepted.
     url = f"{API_BASE_URL}/{path.lstrip('/')}"
-    headers = {"Accept": "application/json", "Accept-Language": DEFAULT_LANGUAGE}
+    headers = {"Accept": "application/json", "Accept-Language": language}
     try:
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS, follow_redirects=False) as client:
             response = await client.get(url, params=params, headers=headers)
@@ -22,13 +22,17 @@ async def _get(path: str, params: dict[str, Any] | None = None) -> Any:
         raise PublicRecipeAPIError(f"Public Monsieur Cuisine API request failed: {exc}") from exc
 
 async def search_recipes(query: str, page: int = 1, size: int = 10, language: str = DEFAULT_LANGUAGE) -> Any:
-    """Search public recipes. Page starts at 1; size is capped at 50."""
+    """Search public recipes. Page starts at 1."""
     page = max(1, int(page))
-    size = min(50, max(1, int(size)))
-    # Observed public route; query parameter names can change upstream.
+    # Route and parameters validated against the live public API (same as SmartChef fallback).
     return await _get(
-        f"api/v1/recipes/search/page/{page}/size/{size}",
-        {"searchTerm": query, "lang": language},
+        f"api/v1/recipes/search/page/{page}",
+        {
+            "q": query,
+            "sortBy[0][field]": "lastUpdated",
+            "sortBy[0][direction]": "DESC",
+        },
+        language,
     )
 
 async def list_recipe_filters(language: str = DEFAULT_LANGUAGE) -> Any:
@@ -42,4 +46,3 @@ async def get_recipe(recipe_id: str, language: str = DEFAULT_LANGUAGE) -> Any:
     if not recipe_id.isdigit():
         raise ValueError("recipe_id must contain digits only")
     return await _get(f"api/v2/recipes/{recipe_id}", {"lang": language})
-  
